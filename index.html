@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assignment Generator & Evaluator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .tab-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .tab-buttons {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-button:hover:not(.active) {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-upload input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-upload-label {
+            display: block;
+            padding: 12px 15px;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .file-upload-label:hover {
+            border-color: #667eea;
+            background: #e7f1ff;
+        }
+
+        .file-upload-label.has-file {
+            border-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result-container.show {
+            display: block;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .question-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .question-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #495057;
+        }
+
+        .options {
+            margin: 10px 0;
+        }
+
+        .option {
+            margin: 5px 0;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .grade-summary {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .grade-summary h3 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .tab-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 AI Assignment Generator & Evaluator</h1>
+            <p>Create and evaluate computer vision assignments with AI assistance</p>
+        </div>
+
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="openTab(event, 'generate-tab')">Generate Assignment</button>
+                <button class="tab-button" onclick="openTab(event, 'evaluate-tab')">Evaluate Assignment</button>
+            </div>
+
+            <!-- Generate Assignment Tab -->
+            <div id="generate-tab" class="tab-content active">
+                <h2>📝 Generate New Assignment</h2>
+                <form id="generateForm">
+                    <div class="form-group">
+                        <label for="topics">Topics (comma-separated):</label>
+                        <input type="text" id="topics" class="form-control" 
+                               placeholder="e.g., edge detection, CNN, image processing, feature extraction"
+                               value="edge detection, CNN, image processing">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="difficulty">Difficulty Level:</label>
+                            <select id="difficulty" class="form-control">
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate" selected>Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="mcq">MCQ Questions:</label>
+                            <input type="number" id="mcq" class="form-control" min="0" max="10" value="3">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="subjective">Subjective Questions:</label>
+                            <input type="number" id="subjective" class="form-control" min="0" max="10" value="2">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Upload Lecture Material (Optional):</label>
+                        <div class="file-upload">
+                            <input type="file" id="lectureFile" accept=".pdf,.docx,.txt">
+                            <label for="lectureFile" class="file-upload-label">
+                                📁 Click to upload PDF, DOCX, or TXT file
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">🚀 Generate Assignment</button>
+                </form>
+
+                <div class="loading" id="generateLoading">
+                    <div class="spinner"></div>
+                    <p>Generating assignment... Please wait.</p>
+                </div>
+
+                <div class="result-container" id="generateResult">
+                    <div class="result-header">
+                        <h3>📋 Generated Assignment</h3>
+                        <button class="btn btn-secondary" onclick="downloadJSON('assignment')">📥 Download JSON</button>
+                    </div>
+                    <div id="assignmentContent"></div>
+                </div>
+            </div>
+
+            <!-- Evaluate Assignment Tab -->
+            <div id="evaluate-tab" class="tab-content">
+                <h2>✅ Evaluate Assignment</h2>
+                
+                <div class="form-group">
+                    <label>Upload Evaluation JSON File:</label>
+                    <div class="file-upload">
+                        <input type="file" id="evaluationFile" accept=".json">
+                        <label for="evaluationFile" class="file-upload-label">
+                            📄 Click to upload JSON file with questions and responses
+                        </label>
+                    </div>
+                    <small style="color: #666;">JSON format: {"questions": [...], "responses": [...]}</small>
+                </div>
+
+                <button type="button" class="btn btn-primary" onclick="evaluateAssignment()">🔍 Evaluate Assignment</button>
+
+                <div class="loading" id="evaluateLoading">
+                    <div class="spinner"></div>
+                    <p>Evaluating responses... Please wait.</p>
+                </div>
+
+                <div class="result-container" id="evaluateResult">
+                    <div class="result-header">
+                        <h3>📊 Evaluation Results</h3>
+                        <button class="btn btn-secondary" onclick="downloadJSON('evaluation')">📥 Download Results</button>
+                    </div>
+                    <div id="evaluationContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentAssignment = null;
+        let currentEvaluation = null;
+        const API_BASE = 'http://localhost:8000'; // Change this to your deployed API URL
+
+        // Tab functionality
+        function openTab(evt, tabName) {
+            const tabContents = document.getElementsByClassName('tab-content');
+            const tabButtons = document.getElementsByClassName('tab-button');
+            
+            for (let content of tabContents) {
+                content.classList.remove('active');
+            }
+            
+            for (let button of tabButtons) {
+                button.classList.remove('active');
+            }
+            
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        // File upload handling
+        document.getElementById('lectureFile').addEventListener('change', function(e) {
+            const label = document.querySelector('label[for="lectureFile"]');
+            if (e.target.files.length > 0) {
+                label.textContent = `📁 ${e.target.files[0].name}`;
+                label.classList.add('has-file');
+            } else {
+                label.textContent = '📁 Click to upload PDF, DOCX, or TXT file';
+                label.classList.remove('has-file');
+            }
+        });
+
+        document.getElementById('evaluationFile').addEventListener('change', function(e) {
+            const label = document.querySelector('label[for="evaluationFile"]');
+            if (e.target.files.length > 0) {
+                label.textContent = `📄 ${e.target.files[0].name}`;
+                label.classList.add('has-file');
+            } else {
+                label.textContent = '📄 Click to upload JSON file with questions and responses';
+                label.classList.remove('has-file');
+            }
+        });
+
+        // Generate assignment
+        document.getElementById('generateForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const topics = document.getElementById('topics').value;
+            const difficulty = document.getElementById('difficulty').value;
+            const mcq = parseInt(document.getElementById('mcq').value);
+            const subjective = parseInt(document.getElementById('subjective').value);
+            const file = document.getElementById('lectureFile').files[0];
+
+            if (mcq + subjective === 0) {
+                showAlert('Please specify at least one question.', 'danger');
+                return;
+            }
+
+            showLoading('generate', true);
+            hideResult('generate');
+
+            try {
+                let response;
+                
+                if (file) {
+                    // Use file upload endpoint
+                    const formData = new FormData();
+                    formData.append('topics', topics);
+                    formData.append('difficulty', difficulty);
+                    formData.append('mcq', mcq);
+                    formData.append('subjective', subjective);
+                    formData.append('file', file);
+
+                    response = await fetch(`${API_BASE}/generate_assignment_with_file`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    // Use topics-only endpoint
+                    const formData = new FormData();
+                    formData.append('topics', topics);
+                    formData.append('difficulty', difficulty);
+                    formData.append('mcq', mcq);
+                    formData.append('subjective', subjective);
+
+                    response = await fetch(`${API_BASE}/generate_assignment_with_topics`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                }
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to generate assignment');
+                }
+
+                const data = await response.json();
+                currentAssignment = data;
+                displayAssignment(data);
+                showResult('generate');
+                showAlert('Assignment generated successfully!', 'success');
+
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert(`Error: ${error.message}`, 'danger');
+            } finally {
+                showLoading('generate', false);
+            }
+        });
+
+        // Evaluate assignment
+        async function evaluateAssignment() {
+            const file = document.getElementById('evaluationFile').files[0];
+            
+            if (!file) {
+                showAlert('Please upload a JSON file for evaluation.', 'danger');
+                return;
+            }
+
+            showLoading('evaluate', true);
+            hideResult('evaluate');
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch(`${API_BASE}/evaluate_with_json_file`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to evaluate assignment');
+                }
+
+                const data = await response.json();
+                currentEvaluation = data;
+                displayEvaluation(data);
+                showResult('evaluate');
+                showAlert('Assignment evaluated successfully!', 'success');
+
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert(`Error: ${error.message}`, 'danger');
+            } finally {
+                showLoading('evaluate', false);
+            }
+        }
+
+        // Display functions
+        function displayAssignment(data) {
+            const content = document.getElementById('assignmentContent');
+            const assignment = data.assignment;
+            
+            let html = '<div class="questions-list">';
+            
+            assignment.forEach((question, index) => {
+                html += `<div class="question-card">
+                    <div class="question-header">Question ${question.id}: ${question.type.toUpperCase()}</div>
+                    <p><strong>${question.question}</strong></p>`;
+                
+                if (question.type === 'mcq') {
+                    html += '<div class="options">';
+                    question.options.forEach(option => {
+                        const isCorrect = option.startsWith(question.correct_answer);
+                        html += `<div class="option ${isCorrect ? 'correct' : ''}">${option}</div>`;
+                    });
+                    html += '</div>';
+                    html += `<p><small><strong>Correct Answer:</strong> ${question.correct_answer}</small></p>`;
+                    html += `<p><small><strong>Explanation:</strong> ${question.explanation}</small></p>`;
+                } else {
+                    html += `<p><small><strong>Max Marks:</strong> ${question.max_marks}</small></p>`;
+                    html += `<p><small><strong>Marking Scheme:</strong> ${question.marking_scheme}</small></p>`;
+                }
+                
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            content.innerHTML = html;
+        }
+
+        function displayEvaluation(data) {
+            const content = document.getElementById('evaluationContent');
+            
+            let html = `<div class="grade-summary">
+                <h3>${data.grade} - ${data.percentage}%</h3>
+                <p>${data.total_score}/${data.total_possible} marks</p>
+                <p>${data.overall_remarks}</p>
+            </div>`;
+            
+            html += '<div class="evaluation-details">';
+            
+            data.evaluation.forEach(item => {
+                html += `<div class="question-card">
+                    <div class="question-header">Question ${item.id} (${item.question_type.toUpperCase()})</div>
+                    <p><strong>Score:</strong> ${item.marks_awarded}/${item.max_marks} marks</p>
+                    <p><strong>Feedback:</strong> ${item.feedback}</p>`;
+                
+                if (item.suggestions) {
+                    html += `<p><strong>Suggestions:</strong> ${item.suggestions}</p>`;
+                }
+                
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            content.innerHTML = html;
+        }
+
+        // Utility functions
+        function showLoading(type, show) {
+            const element = document.getElementById(`${type}Loading`);
+            element.style.display = show ? 'block' : 'none';
+        }
+
+        function showResult(type) {
+            const element = document.getElementById(`${type}Result`);
+            element.classList.add('show');
+        }
+
+        function hideResult(type) {
+            const element = document.getElementById(`${type}Result`);
+            element.classList.remove('show');
+        }
+
+        function showAlert(message, type) {
+            // Remove existing alerts
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            // Insert after the active tab content header
+            const activeTab = document.querySelector('.tab-content.active');
+            const header = activeTab.querySelector('h2');
+            header.insertAdjacentElement('afterend', alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function downloadJSON(type) {
+            let data, filename;
+            
+            if (type === 'assignment' && currentAssignment) {
+                data = currentAssignment;
+                filename = 'assignment.json';
+            } else if (type === 'evaluation' && currentEvaluation) {
+                data = currentEvaluation;
+                filename = 'evaluation_results.json';
+            } else {
+                showAlert('No data available for download.', 'danger');
+                return;
+            }
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], {
+                type: 'application/json'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
