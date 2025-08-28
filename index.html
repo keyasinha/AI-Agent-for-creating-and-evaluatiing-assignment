@@ -307,7 +307,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎓 AI Assignment Generator & Evaluator</h1>
+            <h1>AI Assignment Generator & Evaluator</h1>
             <p>Create and evaluate computer vision assignments with AI assistance</p>
         </div>
 
@@ -319,7 +319,7 @@
 
             <!-- Generate Assignment Tab -->
             <div id="generate-tab" class="tab-content active">
-                <h2>📝 Generate New Assignment</h2>
+                <h2>Generate New Assignment</h2>
                 <form id="generateForm">
                     <div class="form-group">
                         <label for="topics">Topics (comma-separated):</label>
@@ -359,7 +359,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">🚀 Generate Assignment</button>
+                    <button type="submit" class="btn btn-primary">Generate Assignment</button>
                 </form>
 
                 <div class="loading" id="generateLoading">
@@ -369,7 +369,7 @@
 
                 <div class="result-container" id="generateResult">
                     <div class="result-header">
-                        <h3>📋 Generated Assignment</h3>
+                        <h3>Generated Assignment</h3>
                         <button class="btn btn-secondary" onclick="downloadJSON('assignment')">📥 Download JSON</button>
                     </div>
                     <div id="assignmentContent"></div>
@@ -413,7 +413,7 @@
         // Global variables
         let currentAssignment = null;
         let currentEvaluation = null;
-        const API_BASE = 'http://localhost:8000'; // Change this to your deployed API URL
+        const API_BASE = window.location.origin; 
 
         // Tab functionality
         function openTab(evt, tabName) {
@@ -687,4 +687,5 @@
         }
     </script>
 </body>
+
 </html>
