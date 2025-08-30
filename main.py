@@ -14,21 +14,21 @@ import io
 # ---------- Setup ----------
 load_dotenv()
 
-# Initialize OpenAI client with error handling
+# Initialize OpenAI client
 try:
     from openai import OpenAI
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable is not set")
     client = OpenAI(api_key=api_key)
-    print("✅ OpenAI client initialized successfully")
+    print("OpenAI client initialized successfully")
 except Exception as e:
-    print(f"❌ Error initializing OpenAI client: {e}")
+    print(f"Error initializing OpenAI client: {e}")
     raise
 
 app = FastAPI(title="AI Assignment Generator & Evaluator", version="1.0.0")
 
-# Add CORS middleware for frontend integration
+# Adding CORS middleware 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  
@@ -79,7 +79,7 @@ def extract_text_from_file(file: UploadFile) -> str:
         else:
             raise HTTPException(status_code=400, detail="Unsupported file format. Please upload PDF, DOCX, or TXT files.")
         
-        # Reset file pointer for potential reuse
+        
         file.file.seek(0)
         return content.strip()
     except Exception as e:
@@ -261,7 +261,7 @@ async def health_check():
 @app.post("/generate_assignment")
 async def generate_assignment_json(request: AssignmentRequest):
     """Generate assignment using JSON request (no file upload)"""
-    # Validate inputs
+    
     if request.difficulty not in ["beginner", "intermediate", "advanced"]:
         raise HTTPException(status_code=400, detail="Difficulty must be 'beginner', 'intermediate', or 'advanced'")
     
@@ -283,10 +283,10 @@ async def generate_assignment_topics_only(
     subjective: int = Form(..., description="Number of subjective questions")
 ):
     """Generate assignment with topics only (no file upload)"""
-    # Parse topics
+    
     topics_list = [topic.strip() for topic in topics.split(",") if topic.strip()]
     
-    # Validate inputs
+    
     if difficulty not in ["beginner", "intermediate", "advanced"]:
         raise HTTPException(status_code=400, detail="Difficulty must be 'beginner', 'intermediate', or 'advanced'")
     
@@ -309,12 +309,12 @@ async def generate_assignment_with_file(
     topics: Optional[str] = Form(None)
 ):
     """Generate assignment with uploaded file (required)"""
-    # Parse topics if provided
+    
     topics_list = None
     if topics:
         topics_list = [topic.strip() for topic in topics.split(",") if topic.strip()]
     
-    # Validate inputs
+    
     if difficulty not in ["beginner", "intermediate", "advanced"]:
         raise HTTPException(status_code=400, detail="Difficulty must be 'beginner', 'intermediate', or 'advanced'")
     
@@ -324,7 +324,7 @@ async def generate_assignment_with_file(
     if mcq + subjective == 0:
         raise HTTPException(status_code=400, detail="At least one question must be specified")
     
-    # Extract text from file
+    
     lecture_text = extract_text_from_file(file)
     if not lecture_text:
         raise HTTPException(status_code=400, detail="Could not extract text from uploaded file")
@@ -350,18 +350,18 @@ async def evaluate_submission_api(request: EvaluationRequest):
 async def evaluate_with_json_file(file: UploadFile = File(...)):
     """Evaluate assignment from uploaded JSON file"""
     try:
-        # Check file type
+        
         if not file.filename.endswith('.json'):
             raise HTTPException(status_code=400, detail="Please upload a JSON file")
         
-        # Read and parse JSON file
+        
         file_content = await file.read()
         try:
             data = json.loads(file_content.decode('utf-8'))
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid JSON file")
         
-        # Validate JSON structure
+        
         if "questions" not in data or "responses" not in data:
             raise HTTPException(status_code=400, detail="JSON must contain 'questions' and 'responses' fields")
         
@@ -376,7 +376,7 @@ async def evaluate_with_json_file(file: UploadFile = File(...)):
 async def evaluate_simple(req: SubmissionRequest):
     """Simplified evaluation endpoint for backward compatibility"""
     try:
-        # Extract questions and responses from submission
+        
         questions = []
         responses = []
         
@@ -398,8 +398,6 @@ async def evaluate_simple(req: SubmissionRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    
-    # Create static directory if it doesn't exist
     if not os.path.exists("static"):
         os.makedirs("static")
         print("Created 'static' directory. Place your index.html file there.")
@@ -409,6 +407,7 @@ if __name__ == "__main__":
 
 
        
+
 
 
 
