@@ -31,14 +31,12 @@ app = FastAPI(title="AI Assignment Generator & Evaluator", version="1.0.0")
 # Add CORS middleware for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your domain
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Serve static files (for the frontend)
-# Create a 'static' directory and put your HTML file there
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -411,5 +409,6 @@ if __name__ == "__main__":
 
 
        
+
 
 
