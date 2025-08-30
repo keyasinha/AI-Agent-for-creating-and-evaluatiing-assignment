@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Assignment Generator & Evaluator</title>
+    <title>Assignment Generator & Evaluator</title>
     <style>
         * {
             margin: 0;
@@ -155,6 +155,16 @@
             transform: translateY(-2px);
         }
 
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
         .file-upload {
             position: relative;
             display: inline-block;
@@ -223,7 +233,7 @@
 
         .result-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
@@ -253,6 +263,63 @@
             border-radius: 5px;
         }
 
+        .option input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        .attempt-card {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .attempt-card .question-text {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #495057;
+        }
+
+        .attempt-options {
+            margin: 15px 0;
+        }
+
+        .attempt-option {
+            margin: 8px 0;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .attempt-option:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .attempt-option input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        .attempt-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .attempt-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
         .alert {
             padding: 15px;
             border-radius: 8px;
@@ -271,6 +338,12 @@
             border: 1px solid #f5c6cb;
         }
 
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
         .grade-summary {
             background: linear-gradient(45deg, #28a745, #20c997);
             color: white;
@@ -283,6 +356,14 @@
         .grade-summary h3 {
             font-size: 2em;
             margin-bottom: 10px;
+        }
+
+        .no-assignment {
+            text-align: center;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            color: #6c757d;
         }
 
         @media (max-width: 768px) {
@@ -299,7 +380,12 @@
             }
 
             .tab-buttons {
-                flex-direction: column;
+                flex-wrap: wrap;
+            }
+
+            .tab-button {
+                flex: none;
+                min-width: 50%;
             }
         }
     </style>
@@ -314,7 +400,8 @@
         <div class="tab-container">
             <div class="tab-buttons">
                 <button class="tab-button active" onclick="openTab(event, 'generate-tab')">Generate Assignment</button>
-                <button class="tab-button" onclick="openTab(event, 'evaluate-tab')">Evaluate Assignment</button>
+                <button class="tab-button" onclick="openTab(event, 'attempt-tab')">Attempt Assignment</button>
+                <button class="tab-button" onclick="openTab(event, 'evaluate-tab')">Evaluate from File</button>
             </div>
 
             <!-- Generate Assignment Tab -->
@@ -354,7 +441,7 @@
                         <div class="file-upload">
                             <input type="file" id="lectureFile" accept=".pdf,.docx,.txt">
                             <label for="lectureFile" class="file-upload-label">
-                                📁 Click to upload PDF, DOCX, or TXT file
+                                Click to upload PDF, DOCX, or TXT file
                             </label>
                         </div>
                     </div>
@@ -370,28 +457,66 @@
                 <div class="result-container" id="generateResult">
                     <div class="result-header">
                         <h3>Generated Assignment</h3>
-                        <button class="btn btn-secondary" onclick="downloadJSON('assignment')">📥 Download JSON</button>
+                        <div>
+                            <button class="btn btn-success" onclick="openTab(null, 'attempt-tab'); prepareAttempt();" style="margin-right: 10px;">Take Assignment</button>
+                            <button class="btn btn-secondary" onclick="downloadJSON('assignment')">Download JSON</button>
+                        </div>
                     </div>
                     <div id="assignmentContent"></div>
                 </div>
             </div>
 
+            <!-- Attempt Assignment Tab -->
+            <div id="attempt-tab" class="tab-content">
+                <h2>Attempt Assignment</h2>
+                
+                <div id="noAssignmentMessage" class="no-assignment">
+                    <h3>No Assignment Available</h3>
+                    <p>Please generate an assignment first from the "Generate Assignment" tab.</p>
+                    <button class="btn btn-primary" onclick="openTab(null, 'generate-tab')">Generate Assignment</button>
+                </div>
+
+                <div id="attemptContainer" style="display: none;">
+                    <div class="alert alert-info">
+                        <strong>Instructions:</strong> Answer all questions below. For MCQs, select one option. For subjective questions, provide detailed explanations.
+                    </div>
+                    
+                    <form id="attemptForm">
+                        <div id="attemptQuestions"></div>
+                        <button type="submit" class="btn btn-primary">Submit Assignment</button>
+                    </form>
+                </div>
+
+                <div class="loading" id="attemptLoading">
+                    <div class="spinner"></div>
+                    <p>Evaluating your submission... Please wait.</p>
+                </div>
+
+                <div class="result-container" id="attemptResult">
+                    <div class="result-header">
+                        <h3>Your Results</h3>
+                        <button class="btn btn-secondary" onclick="downloadJSON('attempt_results')">Download Results</button>
+                    </div>
+                    <div id="attemptEvaluationContent"></div>
+                </div>
+            </div>
+
             <!-- Evaluate Assignment Tab -->
             <div id="evaluate-tab" class="tab-content">
-                <h2>✅ Evaluate Assignment</h2>
+                <h2>Evaluate Assignment from File</h2>
                 
                 <div class="form-group">
                     <label>Upload Evaluation JSON File:</label>
                     <div class="file-upload">
                         <input type="file" id="evaluationFile" accept=".json">
                         <label for="evaluationFile" class="file-upload-label">
-                            📄 Click to upload JSON file with questions and responses
+                            Click to upload JSON file with questions and responses
                         </label>
                     </div>
                     <small style="color: #666;">JSON format: {"questions": [...], "responses": [...]}</small>
                 </div>
 
-                <button type="button" class="btn btn-primary" onclick="evaluateAssignment()">🔍 Evaluate Assignment</button>
+                <button type="button" class="btn btn-primary" onclick="evaluateAssignment()">Evaluate Assignment</button>
 
                 <div class="loading" id="evaluateLoading">
                     <div class="spinner"></div>
@@ -400,8 +525,8 @@
 
                 <div class="result-container" id="evaluateResult">
                     <div class="result-header">
-                        <h3>📊 Evaluation Results</h3>
-                        <button class="btn btn-secondary" onclick="downloadJSON('evaluation')">📥 Download Results</button>
+                        <h3>Evaluation Results</h3>
+                        <button class="btn btn-secondary" onclick="downloadJSON('evaluation')">Download Results</button>
                     </div>
                     <div id="evaluationContent"></div>
                 </div>
@@ -413,6 +538,7 @@
         // Global variables
         let currentAssignment = null;
         let currentEvaluation = null;
+        let currentAttemptResults = null;
         const API_BASE = "https://ai-agent-for-creating-and-evaluatiing-assignment-production.up.railway.app"; 
 
         // Tab functionality
@@ -429,17 +555,35 @@
             }
             
             document.getElementById(tabName).classList.add('active');
-            evt.currentTarget.classList.add('active');
+            
+            // Update active button
+            if (evt) {
+                evt.currentTarget.classList.add('active');
+            } else {
+                // Find the button for this tab and make it active
+                const buttons = document.querySelectorAll('.tab-button');
+                buttons.forEach(button => {
+                    if (button.onclick && button.onclick.toString().includes(tabName)) {
+                        button.classList.add('active');
+                    } else if (tabName === 'attempt-tab' && button.textContent === 'Attempt Assignment') {
+                        button.classList.add('active');
+                    } else if (tabName === 'generate-tab' && button.textContent === 'Generate Assignment') {
+                        button.classList.add('active');
+                    } else if (tabName === 'evaluate-tab' && button.textContent === 'Evaluate from File') {
+                        button.classList.add('active');
+                    }
+                });
+            }
         }
 
         // File upload handling
         document.getElementById('lectureFile').addEventListener('change', function(e) {
             const label = document.querySelector('label[for="lectureFile"]');
             if (e.target.files.length > 0) {
-                label.textContent = `📁 ${e.target.files[0].name}`;
+                label.textContent = `${e.target.files[0].name}`;
                 label.classList.add('has-file');
             } else {
-                label.textContent = '📁 Click to upload PDF, DOCX, or TXT file';
+                label.textContent = 'Click to upload PDF, DOCX, or TXT file';
                 label.classList.remove('has-file');
             }
         });
@@ -447,10 +591,10 @@
         document.getElementById('evaluationFile').addEventListener('change', function(e) {
             const label = document.querySelector('label[for="evaluationFile"]');
             if (e.target.files.length > 0) {
-                label.textContent = `📄 ${e.target.files[0].name}`;
+                label.textContent = `${e.target.files[0].name}`;
                 label.classList.add('has-file');
             } else {
-                label.textContent = '📄 Click to upload JSON file with questions and responses';
+                label.textContent = 'Click to upload JSON file with questions and responses';
                 label.classList.remove('has-file');
             }
         });
@@ -477,7 +621,6 @@
                 let response;
                 
                 if (file) {
-                    // Use file upload endpoint
                     const formData = new FormData();
                     formData.append('topics', topics);
                     formData.append('difficulty', difficulty);
@@ -490,7 +633,6 @@
                         body: formData
                     });
                 } else {
-                    // Use topics-only endpoint
                     const formData = new FormData();
                     formData.append('topics', topics);
                     formData.append('difficulty', difficulty);
@@ -505,14 +647,14 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.detail || 'Failed to generate assignment');
+                    throw new Error(error.detail || `HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 const data = await response.json();
                 currentAssignment = data;
                 displayAssignment(data);
                 showResult('generate');
-                showAlert('Assignment generated successfully!', 'success');
+                showAlert('Assignment generated successfully! You can now attempt it.', 'success');
 
             } catch (error) {
                 console.error('Error:', error);
@@ -522,7 +664,123 @@
             }
         });
 
-        // Evaluate assignment
+        // Prepare attempt interface
+        function prepareAttempt() {
+            if (!currentAssignment) {
+                document.getElementById('noAssignmentMessage').style.display = 'block';
+                document.getElementById('attemptContainer').style.display = 'none';
+                return;
+            }
+
+            document.getElementById('noAssignmentMessage').style.display = 'none';
+            document.getElementById('attemptContainer').style.display = 'block';
+            hideResult('attempt');
+
+            const questionsContainer = document.getElementById('attemptQuestions');
+            const assignment = currentAssignment.assignment;
+            
+            let html = '';
+            
+            assignment.forEach((question, index) => {
+                html += `<div class="attempt-card">
+                    <div class="question-text">Question ${question.id}: ${question.question}</div>`;
+                
+                if (question.type === 'mcq') {
+                    html += '<div class="attempt-options">';
+                    question.options.forEach((option, optionIndex) => {
+                        const optionValue = option.charAt(0); // A, B, C, D
+                        html += `<div class="attempt-option">
+                            <label>
+                                <input type="radio" name="question_${question.id}" value="${optionValue}" required>
+                                ${option}
+                            </label>
+                        </div>`;
+                    });
+                    html += '</div>';
+                } else {
+                    html += `<textarea 
+                        name="question_${question.id}" 
+                        class="attempt-textarea" 
+                        placeholder="Write your detailed answer here..." 
+                        required></textarea>`;
+                }
+                
+                html += '</div>';
+            });
+            
+            questionsContainer.innerHTML = html;
+        }
+
+        // Handle attempt submission
+        document.getElementById('attemptForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!currentAssignment) {
+                showAlert('No assignment available to submit.', 'danger');
+                return;
+            }
+
+            showLoading('attempt', true);
+            hideResult('attempt');
+
+            try {
+                // Collect responses
+                const responses = [];
+                const assignment = currentAssignment.assignment;
+                
+                assignment.forEach(question => {
+                    const input = document.querySelector(`[name="question_${question.id}"]`);
+                    let answer = '';
+                    
+                    if (question.type === 'mcq') {
+                        const checkedRadio = document.querySelector(`[name="question_${question.id}"]:checked`);
+                        answer = checkedRadio ? checkedRadio.value : '';
+                    } else {
+                        answer = input ? input.value : '';
+                    }
+                    
+                    responses.push({
+                        id: question.id,
+                        type: question.type,
+                        question: question.question,
+                        answer: answer
+                    });
+                });
+
+                // Submit for evaluation
+                const evaluationData = {
+                    questions: assignment,
+                    responses: responses
+                };
+
+                const response = await fetch(`${API_BASE}/evaluate_submission`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(evaluationData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || `HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                currentAttemptResults = data;
+                displayAttemptEvaluation(data);
+                showResult('attempt');
+                showAlert('Assignment submitted and evaluated successfully!', 'success');
+
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert(`Error: ${error.message}`, 'danger');
+            } finally {
+                showLoading('attempt', false);
+            }
+        });
+
+        // Evaluate assignment from file
         async function evaluateAssignment() {
             const file = document.getElementById('evaluationFile').files[0];
             
@@ -545,7 +803,7 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.detail || 'Failed to evaluate assignment');
+                    throw new Error(error.detail || `HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 const data = await response.json();
@@ -597,7 +855,15 @@
 
         function displayEvaluation(data) {
             const content = document.getElementById('evaluationContent');
-            
+            displayEvaluationResults(content, data);
+        }
+
+        function displayAttemptEvaluation(data) {
+            const content = document.getElementById('attemptEvaluationContent');
+            displayEvaluationResults(content, data);
+        }
+
+        function displayEvaluationResults(content, data) {
             let html = `<div class="grade-summary">
                 <h3>${data.grade} - ${data.percentage}%</h3>
                 <p>${data.total_score}/${data.total_possible} marks</p>
@@ -640,20 +906,21 @@
         }
 
         function showAlert(message, type) {
-            // Remove existing alerts
             const existingAlerts = document.querySelectorAll('.alert');
-            existingAlerts.forEach(alert => alert.remove());
+            existingAlerts.forEach(alert => {
+                if (!alert.classList.contains('alert-info')) {
+                    alert.remove();
+                }
+            });
             
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${type}`;
             alertDiv.textContent = message;
             
-            // Insert after the active tab content header
             const activeTab = document.querySelector('.tab-content.active');
             const header = activeTab.querySelector('h2');
             header.insertAdjacentElement('afterend', alertDiv);
             
-            // Auto-remove after 5 seconds
             setTimeout(() => {
                 alertDiv.remove();
             }, 5000);
@@ -668,6 +935,9 @@
             } else if (type === 'evaluation' && currentEvaluation) {
                 data = currentEvaluation;
                 filename = 'evaluation_results.json';
+            } else if (type === 'attempt_results' && currentAttemptResults) {
+                data = currentAttemptResults;
+                filename = 'attempt_evaluation_results.json';
             } else {
                 showAlert('No data available for download.', 'danger');
                 return;
@@ -685,7 +955,23 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
+
+        // Initialize attempt tab on page load
+        window.addEventListener('load', async function() {
+            prepareAttempt(); // Check if assignment is available
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    console.log('✅ API connection successful');
+                } else {
+                    console.warn('⚠️ API health check failed:', response.status);
+                }
+            } catch (error) {
+                console.error('❌ API connection failed:', error);
+                showAlert('Warning: Cannot connect to API. Please check your internet connection.', 'danger');
+            }
+        });
     </script>
 </body>
-
 </html>
