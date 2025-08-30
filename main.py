@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import os
 from dotenv import load_dotenv
-from openai import OpenAI
 import pdfplumber
 import docx
 import json
@@ -14,7 +13,19 @@ import io
 
 # ---------- Setup ----------
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# Initialize OpenAI client with error handling
+try:
+    from openai import OpenAI
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable is not set")
+    client = OpenAI(api_key=api_key)
+    print("✅ OpenAI client initialized successfully")
+except Exception as e:
+    print(f"❌ Error initializing OpenAI client: {e}")
+    raise
+
 app = FastAPI(title="AI Assignment Generator & Evaluator", version="1.0.0")
 
 # Add CORS middleware for frontend integration
@@ -138,6 +149,84 @@ def generate_assignment(topics: Optional[List[str]], difficulty: str, mcq: int, 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=2000
+        )
+
+        # Parse JSON response
+        content = response.choices[0].message.content.strip()
+        
+        # Try to extract JSON if there's extra text
+        if not content.startswith('{'):
+            start = content.find('{')
+            end = content.rfind('}') + 1
+            if start != -1 and end > start:
+                content = content[start:end]
+        
+        return json.loads(content)
+    
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI response as JSON: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating assignment: {str(e)}")
+
+# ---------- Assignment Evaluator ----------
+def evaluate_submission(questions: List[Dict[str, Any]], responses: List[Dict[str, Any]]):
+    try:
+        prompt = f"""
+        You are an expert computer vision professor grading assignments.
+        
+        Original Questions with Correct Answers:
+        {json.dumps(questions, indent=2)}
+        
+        Student Responses:
+        {json.dumps(responses, indent=2)}
+
+        Grading Instructions:
+        - For MCQ questions: 5 marks if correct, 0 if wrong
+        - For subjective questions: Grade out of 5 marks based on:
+          * Conceptual understanding (0-2 marks)
+          * Technical accuracy (0-2 marks)  
+          * Completeness of explanation (0-1 mark)
+        
+        For each response, provide:
+        - "marks": score awarded
+        - "feedback": detailed explanation of grading
+        - "suggestions": areas for improvement (if applicable)
+
+        Return STRICTLY valid JSON in the following format:
+        {{
+          "evaluation": [
+            {{
+              "id": 1,
+              "question_type": "mcq",
+              "marks_awarded": 5,
+              "max_marks": 5,
+              "feedback": "Correct! Edge detection is primarily used for feature extraction...",
+              "suggestions": ""
+            }},
+            {{
+              "id": 2,
+              "question_type": "subjective", 
+              "marks_awarded": 3,
+              "max_marks": 5,
+              "feedback": "Good understanding shown but missing key concepts...",
+              "suggestions": "Include discussion on labeled vs unlabeled data..."
+            }}
+          ],
+          "total_score": 8,
+          "total_possible": 10,
+          "percentage": 80,
+          "grade": "B+",
+          "overall_remarks": "Good performance with room for improvement in theoretical concepts."
+        }}
+
+        Do not include any text outside the JSON structure.
+        """
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
             temperature=0.1,  # Lower temperature for consistent grading
             max_tokens=2000
         )
@@ -169,7 +258,7 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "message": "API is running"}
+    return {"status": "healthy", "message": "API is running", "openai_configured": bool(os.getenv("OPENAI_API_KEY"))}
 
 @app.post("/generate_assignment")
 async def generate_assignment_json(request: AssignmentRequest):
@@ -247,68 +336,6 @@ async def generate_assignment_with_file(
     return result
 
 @app.post("/evaluate_submission")
-def evaluate_submission(questions: List[Dict[str, Any]], responses: List[Dict[str, Any]]):
-    try:
-        prompt = f"""
-        You are an expert computer vision professor grading assignments.
-        
-        Original Questions with Correct Answers:
-        {json.dumps(questions, indent=2)}
-        
-        Student Responses:
-        {json.dumps(responses, indent=2)}
-
-        Grading Instructions:
-        - For MCQ questions: 5 marks if correct, 0 if wrong
-        - For subjective questions: Grade out of 5 marks based on:
-          * Conceptual understanding (0-2 marks)
-          * Technical accuracy (0-2 marks)  
-          * Completeness of explanation (0-1 mark)
-        
-        For each response, provide:
-        - "marks": score awarded
-        - "feedback": detailed explanation of grading
-        - "suggestions": areas for improvement (if applicable)
-
-        Return STRICTLY valid JSON in the following format:
-        {{
-          "evaluation": [
-            {{
-              "id": 1,
-              "question_type": "mcq",
-              "marks_awarded": 5,
-              "max_marks": 5,
-              "feedback": "Correct! Edge detection is primarily used for feature extraction...",
-              "suggestions": ""
-            }},
-            {{
-              "id": 2,
-              "question_type": "subjective", 
-              "marks_awarded": 3,
-              "max_marks": 5,
-              "feedback": "Good understanding shown but missing key concepts...",
-              "suggestions": "Include discussion on labeled vs unlabeled data..."
-            }}
-          ],
-          "total_score": 8,
-          "total_possible": 10,
-          "percentage": 80,
-          "grade": "B+",
-          "overall_remarks": "Good performance with room for improvement in theoretical concepts."
-        }}
-
-        Do not include any text outside the JSON structure.
-        """
-
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=2000
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error evaluating submission: {str(e)}")
-
 async def evaluate_submission_api(request: EvaluationRequest):
     """Evaluate submission using JSON request"""
     # Validate input
@@ -382,5 +409,7 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
 
+
        
+
 
